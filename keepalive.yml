@@ -1,0 +1,33 @@
+name: keepalive
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Call std_account API
+        env:
+          KEY: ${{ secrets.UNSW_API_KEY }}
+        run: |
+          cat > body.xml <<'EOF'
+          <std_account_updates>
+            <std_account_update>
+              <LCOMP_CODE></LCOMP_CODE>
+              <ACC_CODE></ACC_CODE>
+              <ACC_LABEL_FR></ACC_LABEL_FR>
+              <ACCTYPE_CODE></ACCTYPE_CODE>
+              <ACA_CODE></ACA_CODE>
+              <TVA_CODE_DEFAULT></TVA_CODE_DEFAULT>
+              <ACC_CODE_TVA_DEFAULT></ACC_CODE_TVA_DEFAULT>
+            </std_account_update>
+          </std_account_updates>
+          EOF
+          code=$(curl -s -o resp.txt -w '%{http_code}' -X POST \
+            -H 'Content-Type: application/xml' --data-binary @body.xml \
+            "https://env-pre03.ivalua.com/buyer/unsw/prepevol/q4vui/api.aspx/v1.0/bas/std_account?apikey=${KEY}")
+          echo "HTTP $code"; head -c 500 resp.txt
+          [ "$code" != "000" ] && [ "$code" != "401" ] && [ "$code" != "403" ]
